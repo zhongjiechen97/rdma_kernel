@@ -14,6 +14,28 @@
 static struct ib_device *global_dev = NULL;
 static const char *global_dev_name = NULL;
 
+static int dump_call_back(struct ib_device *ibdev)
+{
+    printk("ibdev->name: %s\n", ibdev->name);
+    return 0;
+}
+
+void dump_all_ib_devices(void)
+{
+    struct ib_client foo_client = {
+        .name		= "dump_all_ib_devices",
+        .add		= dump_call_back,
+        .remove		= NULL,
+    };
+
+    if(ib_register_client(&foo_client)) {
+        err_info("ib_register_client error\n");
+        return;
+    }
+    ib_unregister_client(&foo_client);
+    return;
+}
+
 void comp_handler_cb(struct ib_cq *cq, void *cq_context);
 
 void event_handler_cb(struct ib_event *event, void *context);

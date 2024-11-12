@@ -60,4 +60,14 @@ extern int user_rdma_core(int is_server, const char *dev_name,
 	(cond);															\
 })
 
+
+/**
+ * @brief This function dumps information of all ib devices
+ * 
+ * @param ibdev 
+ * @return int 
+ */
+extern void dump_all_ib_devices(void);
+
+
 #endif		/* __COMMON_H__ */

@@ -64,6 +64,9 @@ int __init rdma_kern_init(void) {
 		err_info("Cannont create proc entry\n");
 		ret = -ENOMEM;
 	}
+
+    dump_all_ib_devices();
+
 	return ret;
 }
 

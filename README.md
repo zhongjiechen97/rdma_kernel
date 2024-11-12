@@ -1,2 +1,2 @@
-# Kernel RDMA application
+# Bootstrap for kernel RDMA application
 

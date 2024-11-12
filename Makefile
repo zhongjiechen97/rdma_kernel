@@ -4,9 +4,7 @@ EXTRA_CFLAGS+=-D__KERNEL_PROC $(extra_macro)
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-	$(MAKE) -C ./user_app/
 
 .PHONY: clean
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
-	$(MAKE) -C ./user_app clean
