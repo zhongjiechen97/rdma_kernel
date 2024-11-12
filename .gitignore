@@ -7,5 +7,6 @@
 *.cache
 Module.symvers
 modules.order
+compile_commands.json
 
 user_app/rdma_user
