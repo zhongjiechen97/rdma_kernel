@@ -65,7 +65,7 @@ int __init rdma_kern_init(void) {
 		ret = -ENOMEM;
 	}
 
-    dump_all_ib_devices();
+    ekr_dump_all_ib_devices();
 
 	return ret;
 }

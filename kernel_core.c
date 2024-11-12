@@ -20,10 +20,10 @@ static int dump_call_back(struct ib_device *ibdev)
     return 0;
 }
 
-void dump_all_ib_devices(void)
+void ekr_dump_all_ib_devices(void)
 {
     struct ib_client foo_client = {
-        .name		= "dump_all_ib_devices",
+        .name		= "ekr_dump_all_ib_devices",
         .add		= dump_call_back,
         .remove		= NULL,
     };

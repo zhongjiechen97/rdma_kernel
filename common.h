@@ -1,6 +1,11 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+/**
+ * @brief EKR: Easy Kernel Rdma
+ * 
+ */
+
 #ifdef __KERNEL_PROC
 #include <rdma/ib_verbs.h>
 #include <linux/in.h>
@@ -67,7 +72,7 @@ extern int user_rdma_core(int is_server, const char *dev_name,
  * @param ibdev 
  * @return int 
  */
-extern void dump_all_ib_devices(void);
+extern void ekr_dump_all_ib_devices(void);
 
 
 #endif		/* __COMMON_H__ */
