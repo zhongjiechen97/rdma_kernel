@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <infiniband/verbs.h>
 #include <errno.h>
 #include <string.h>
