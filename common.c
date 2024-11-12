@@ -66,7 +66,7 @@ static int run_kernel_rdma(int argc, char **argv) {
 		return -EINVAL;
 	}
 
-	sscanf(argv[PARAM_PORTNUM], "%d", &portnum);
+	sscanf(argv[PARAM_PORTNUM], "%hd", &portnum);
 	sscanf(argv[PARAM_RDMAPORT], "%d", &rdma_port);
 	sscanf(argv[PARAM_SGIDINDEX], "%d", &sgid_index);
 

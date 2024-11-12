@@ -14,12 +14,17 @@
 static struct ib_device *global_dev = NULL;
 static const char *global_dev_name = NULL;
 
-static void add_device_call_back(struct ib_device *ibdev) {
-	char *dev_name = global_dev_name;
+void comp_handler_cb(struct ib_cq *cq, void *cq_context);
+
+void event_handler_cb(struct ib_event *event, void *context);
+
+static int add_device_call_back(struct ib_device *ibdev) {
+	const char *dev_name = global_dev_name;
 	if(strcmp(ibdev->name, dev_name)) {
-		return;
+		return -ENODEV;
 	}
 	global_dev = ibdev;
+    return 0;
 }
 
 static void remove_device_call_back(struct ib_device *ibdev, void *client_data) {
@@ -49,7 +54,6 @@ static struct ib_device *get_ib_device(const char *dev_name) {
 static int setup_connection(bool is_server, const struct sockaddr_in *s_addr,
 			struct socket **sock, struct socket **client_sock) {
 	struct socket **create_sock;
-	int flag = 1;
 	int err = 0;
 
 	*sock = (struct socket*)kzalloc(sizeof(struct socket), GFP_KERNEL);
@@ -67,12 +71,14 @@ static int setup_connection(bool is_server, const struct sockaddr_in *s_addr,
 		goto err_socket;
 	}
 
-	err = kernel_setsockopt(*create_sock, SOL_SOCKET, SO_REUSEPORT,
-				(char*)&flag, sizeof(int));
-	if(err) {
-		err_info("setsockopt error\n");
-		goto err_socket;
-	}
+	// err = kernel_setsockopt(*create_sock, SOL_SOCKET, SO_REUSEPORT,
+	// 			(char*)&flag, sizeof(int));
+	// if(err) {
+	// 	err_info("setsockopt error\n");
+	// 	goto err_socket;
+	// }
+
+    sock_set_reuseaddr((*create_sock)->sk);
 
 	if(is_server) {
 		err = kernel_bind(*sock, (struct sockaddr*)s_addr, sizeof(*s_addr));
@@ -158,11 +164,11 @@ static void close_connection(bool is_server,
 //	kfree(sock);
 }
 
-static void comp_handler_cb(struct ib_cq *cq, void *cq_context) {
+void comp_handler_cb(struct ib_cq *cq, void *cq_context) {
 	return;
 }
 
-static void event_handler_cb(struct ib_event *event, void *context) {
+void event_handler_cb(struct ib_event *event, void *context) {
 	return;
 }
 
@@ -172,7 +178,6 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 	int err = 0;
 	struct ib_device *ib_dev;
 	struct ib_pd *pd;
-	struct ib_mr *mr;
 	struct ib_cq *cq;
 	struct ib_qp *qp;
 	struct ib_cq_init_attr cq_init_attr = {};
@@ -183,8 +188,10 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 	union ib_gid local_gid;
 	struct rdma_conn_param local_info, remote_info;
 	struct ib_sge sge_list;
-	struct ib_recv_wr recv_wr, *bad_recv_wr;
-	struct ib_send_wr send_wr, *bad_send_wr;
+	struct ib_recv_wr recv_wr;
+    const struct ib_recv_wr *bad_recv_wr;
+	struct ib_send_wr send_wr;
+    const struct ib_send_wr *bad_send_wr;
 	struct socket *sock, *client_sock;
 #ifdef USE_VMALLOC
 	char buffer[MAXSIZE];
@@ -215,12 +222,6 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 	}
 
 	memset(buffer, 0, MAXSIZE);
-
-	mr = ib_get_dma_mr(pd, IB_ACCESS_LOCAL_WRITE);
-	if(IS_ERR(mr)) {
-		err = (int)PTR_ERR(mr);
-		goto err_get_dma_mr;
-	}
 
 #ifdef USE_VMALLOC
 	dbg_info("NOTICE: Using vmalloc\n");
@@ -328,10 +329,7 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 		goto err_modify_qp;
 	}
 	
-	err = rdma_destroy_ah(ah);
-	if(err) {
-		goto err_modify_qp;
-	}
+	rdma_destroy_ah(ah, 0);
 
 	err = ib_modify_qp(qp, &qp_attr, attr_flag);
 	if(err) {
@@ -356,7 +354,7 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 
 	sge_list.addr = (uintptr_t)dma_addr;
 	sge_list.length = MAXSIZE;
-	sge_list.lkey = mr->lkey;
+    sge_list.lkey = pd->local_dma_lkey;
 	if(is_server) {
 		recv_wr.wr_id = 1;
 		recv_wr.sg_list = &sge_list;
@@ -423,8 +421,6 @@ err_create_cq:
 	ib_dma_unmap_single(ib_dev, dma_addr, MAXSIZE, DMA_BIDIRECTIONAL);
 #endif
 err_dma_map_single:
-	ib_dereg_mr(mr);
-err_get_dma_mr:
 	ib_dealloc_pd(pd);
 err_alloc_pd:
 #ifndef USE_VMALLOC

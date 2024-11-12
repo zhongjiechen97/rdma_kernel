@@ -1,5 +1,11 @@
 *.o
 *.ko
 *.d
+*.mod
+*.mod.c
+*.cmd
+*.cache
+Module.symvers
+modules.order
 
 user_app/rdma_user

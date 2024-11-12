@@ -5,6 +5,9 @@
 #include <linux/uaccess.h>
 #include "common.h"
 
+int __init rdma_kern_init(void);
+void __exit rdma_kern_exit(void);
+
 static ssize_t rdma_kern_write(struct file * file, 
 		const char __user * buffer,
 		size_t count, loff_t *ppos) {
@@ -47,9 +50,8 @@ err_kzalloc:
 	return size;
 }
 
-struct file_operations rdma_kern_fops = {
-	.owner		= THIS_MODULE,
-	.write		= rdma_kern_write,
+struct proc_ops rdma_kern_fops = {
+	.proc_write		= rdma_kern_write,
 };
 
 struct proc_dir_entry *rdma_kern_ent;

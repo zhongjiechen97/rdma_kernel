@@ -9,7 +9,7 @@ else
 	njobs:=1
 
 all:
-	$(MAKE) -C $(MLNX_OFED_KERNEL) M=$(PWD)
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 	$(MAKE) -C ./user_app/
 
 .PHONY: configure
@@ -19,6 +19,7 @@ configure:
 .PHONY: clean
 clean:
 	$(MAKE) -C $(MLNX_OFED_KERNEL) M=$(PWD) clean
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 ifneq ($(shell ls Module.symvers 2> /dev/null),)
 	rm $(foreach i, $(shell ls Module.symvers),$(i))
 endif
