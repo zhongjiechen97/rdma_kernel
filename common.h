@@ -74,5 +74,12 @@ extern int user_rdma_core(int is_server, const char *dev_name,
  */
 extern void ekr_dump_all_ib_devices(void);
 
+/**
+ * @brief This function gets ib device by name
+ * 
+ * @param dev_name 
+ * @return struct ib_device* 
+ */
+extern struct ib_device * ekr_get_ib_device_by_name(const char *dev_name);
 
 #endif		/* __COMMON_H__ */

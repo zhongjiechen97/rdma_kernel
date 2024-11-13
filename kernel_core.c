@@ -11,10 +11,10 @@
 
 #define MAXSIZE			1024
 
-static struct ib_device *global_dev = NULL;
-static const char *global_dev_name = NULL;
+static char search_ib_dev_name[IB_DEVICE_NAME_MAX];
+static struct ib_device *search_ib_dev = NULL;
 
-static int dump_call_back(struct ib_device *ibdev)
+static inline int dump_call_back(struct ib_device *ibdev)
 {
     printk("ibdev->name: %s\n", ibdev->name);
     return 0;
@@ -22,56 +22,54 @@ static int dump_call_back(struct ib_device *ibdev)
 
 void ekr_dump_all_ib_devices(void)
 {
-    struct ib_client foo_client = {
+    struct ib_client client = {
         .name		= "ekr_dump_all_ib_devices",
         .add		= dump_call_back,
         .remove		= NULL,
     };
-
-    if(ib_register_client(&foo_client)) {
+    printk("All available ib devices:\n");
+    if(ib_register_client(&client)) {
         err_info("ib_register_client error\n");
         return;
     }
-    ib_unregister_client(&foo_client);
+    ib_unregister_client(&client);
     return;
 }
 
-void comp_handler_cb(struct ib_cq *cq, void *cq_context);
-
-void event_handler_cb(struct ib_event *event, void *context);
-
-static int add_device_call_back(struct ib_device *ibdev) {
-	const char *dev_name = global_dev_name;
-	if(strcmp(ibdev->name, dev_name)) {
-		return -ENODEV;
-	}
-	global_dev = ibdev;
-    return 0;
+static inline int find_call_back(struct ib_device *ibdev)
+{
+    if(!strncmp(ibdev->name, search_ib_dev_name, strlen(search_ib_dev_name))) {
+        if (!search_ib_dev) {
+            /* find the first matched one */
+            search_ib_dev = ibdev;
+        }
+        return 1;
+    }
+    return -1;
 }
 
-static void remove_device_call_back(struct ib_device *ibdev, void *client_data) {
-	global_dev = NULL;
-	global_dev_name = NULL;
-	return;
+struct ib_device * ekr_get_ib_device_by_name(const char *dev_name)
+{
+    struct ib_device *ib_dev;
+
+    struct ib_client client = {
+        .name		= "ekr_dump_all_ib_devices",
+        .add		= find_call_back,
+        .remove		= NULL,
+    };
+    memcpy(search_ib_dev_name, dev_name, strlen(dev_name));
+    if(ib_register_client(&client)) {
+        err_info("ib_register_client error\n");
+        return NULL;
+    }
+    ib_dev = search_ib_dev;
+    ib_unregister_client(&client);
+    return ib_dev;
 }
 
-static struct ib_device *get_ib_device(const char *dev_name) {
-	struct ib_device *dev;
-	struct ib_client my_ib_client = {
-		.name		= "rdma_kern_demo",
-		.add		= add_device_call_back,
-		.remove		= remove_device_call_back,
-	};
+// void comp_handler_cb(struct ib_cq *cq, void *cq_context);
 
-	global_dev_name = dev_name;
-	if(ib_register_client(&my_ib_client)) {
-		return NULL;
-	}
-
-	dev = global_dev;
-	ib_unregister_client(&my_ib_client);
-	return dev;
-}
+// void event_handler_cb(struct ib_event *event, void *context);
 
 static int setup_connection(bool is_server, const struct sockaddr_in *s_addr,
 			struct socket **sock, struct socket **client_sock) {
@@ -186,13 +184,13 @@ static void close_connection(bool is_server,
 //	kfree(sock);
 }
 
-void comp_handler_cb(struct ib_cq *cq, void *cq_context) {
-	return;
-}
+// void comp_handler_cb(struct ib_cq *cq, void *cq_context) {
+// 	return;
+// }
 
-void event_handler_cb(struct ib_event *event, void *context) {
-	return;
-}
+// void event_handler_cb(struct ib_event *event, void *context) {
+// 	return;
+// }
 
 int kernel_rdma_core(bool is_server, const char *dev_name,
 				const struct sockaddr_in *s_addr, 
@@ -223,7 +221,7 @@ int kernel_rdma_core(bool is_server, const char *dev_name,
 	u64 dma_addr;
 	int attr_flag;
 
-	ib_dev = get_ib_device(dev_name);
+	ib_dev = ekr_get_ib_device_by_name(dev_name);
 	if(!ib_dev) {
 		return -ENODEV;
 	}
